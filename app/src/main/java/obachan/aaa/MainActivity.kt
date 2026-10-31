@@ -109,7 +109,7 @@ fun installapk(context: Context, apk: File) {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
   Text(
-    text = "Hello $name!",
+    text = "asu $name!",
     modifier = modifier
   )
 }
