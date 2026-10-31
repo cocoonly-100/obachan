@@ -2,9 +2,11 @@ package obachan.aaa
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.nfc.Tag
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -26,12 +28,13 @@ import java.net.URL
 import org.json.JSONObject
 import java.io.File
 import java.util.Objects
-
+import kotlin.math.log
+const val TAG="debug"
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
-    lifecycleScope.launch{ checkupdate(this@MainActivity)}
+    lifecycleScope.launch{checkupdate(this@MainActivity)}
     setContent {
       ObchanTheme {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -47,16 +50,20 @@ class MainActivity : ComponentActivity() {
 suspend fun checkupdate(context: Context)= withContext(Dispatchers.IO){
   try {
     val json = fecthlatestjson() ?: return@withContext
-    val latestversion = json.optLong("version", 0L)
+    val latestversion = json.optLong("versioncode", 0L)
     val apkurl = json.optString("url", "")
+    Log.d(TAG, "$latestversion $json")
     if (latestversion <= 0L || apkurl.isBlank()) return@withContext
     val currentversion = checkcurrentversion(context)
+    Log.d("debug", "current=$currentversion latest=$latestversion")
     if (currentversion >= latestversion) return@withContext
     val dest = File(context.cacheDir, "obachan.apk")
     val ok = downloadapk(apkurl, dest)
     if (ok==false) return@withContext
     withContext(Dispatchers.Main){installapk(context,dest)}
-  }catch(e: Exception){e.printStackTrace()}
+  }catch(e: Exception){
+    Log.d(TAG, e.toString())
+  }
 }
 
 fun checkcurrentversion(context: Context):Long{
@@ -74,6 +81,8 @@ fun fecthlatestjson(): JSONObject?{
   try{
     if(conn.responseCode !in 200..299) return null
     return JSONObject(conn.inputStream.bufferedReader().use {it.readText()})
+  }catch(e: Exception){
+    Log.d(TAG, e.toString());return null
   }finally {conn.disconnect()}
 }
 
