@@ -1,4 +1,5 @@
 package obachan.aaa
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -29,12 +30,16 @@ import org.json.JSONObject
 import java.io.File
 import java.util.Objects
 import kotlin.math.log
+import androidx.core.net.toUri
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+
 const val TAG="debug"
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
-    lifecycleScope.launch{checkupdate(this@MainActivity)}
+    lifecycleScope.launch{update(this@MainActivity)}
     setContent {
       ObchanTheme {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -47,7 +52,7 @@ class MainActivity : ComponentActivity() {
     }
   }
 }
-suspend fun checkupdate(context: Context)= withContext(Dispatchers.IO){
+suspend fun update(context: Context)= withContext(Dispatchers.IO){
   try {
     val json = fecthlatestjson() ?: return@withContext
     val latestversion = json.optLong("versioncode", 0L)
@@ -57,6 +62,9 @@ suspend fun checkupdate(context: Context)= withContext(Dispatchers.IO){
     val currentversion = checkcurrentversion(context)
     Log.d("debug", "current=$currentversion latest=$latestversion")
     if (currentversion >= latestversion) return@withContext
+    //promptupdate
+    if (!promptupdate(context,currentversion,latestversion)) return@withContext
+
     val dest = File(context.cacheDir, "obachan.apk")
     val ok = downloadapk(apkurl, dest)
     if (ok==false) return@withContext
@@ -66,6 +74,18 @@ suspend fun checkupdate(context: Context)= withContext(Dispatchers.IO){
   }
 }
 
+suspend fun promptupdate(context: Context, current: Long, latest: Long): Boolean =
+  withContext(Dispatchers.Main) {
+    suspendCancellableCoroutine { cont ->
+      AlertDialog.Builder(context)
+        .setTitle("Update available")
+        .setMessage("Current: $current\nLatest: $latest\n\nUpdate now?")
+        .setPositiveButton("Update") { _, _ -> if (cont.isActive) cont.resume(true)}
+        .setNegativeButton("Later") { _, _ -> if (cont.isActive) cont.resume(false) }
+        .setOnCancelListener {if (cont.isActive) cont.resume(false) }
+        .show()
+    }
+  }
 fun checkcurrentversion(context: Context):Long{
   val info=context.packageManager.getPackageInfo(context.packageName,0)
   return if (Build.VERSION.SDK_INT >= 28) info.longVersionCode
@@ -102,7 +122,7 @@ fun downloadapk(url: String, dest:java.io.File):Boolean?{
 
 fun installapk(context: Context, apk: File) {
   if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O &&!context.packageManager.canRequestPackageInstalls()){
-    val settings= Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).setData(Uri.parse("package:${context.packageName}"))
+    val settings= Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).setData("package:${context.packageName}".toUri())
     settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     context.startActivity(settings)
     return
