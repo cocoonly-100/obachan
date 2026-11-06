@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -66,9 +67,14 @@ suspend fun update(context: Context)= withContext(Dispatchers.IO){
     if (!promptupdate(context,currentversion,latestversion)) return@withContext
 
     val dest = File(context.cacheDir, "obachan.apk")
+    Log.d(TAG, "dest")
     val ok = downloadapk(apkurl, dest)
+    Log.d(TAG, "downloaded")
     if (ok==false) return@withContext
     withContext(Dispatchers.Main){installapk(context,dest)}
+    Log.d(TAG, "installed")
+  }catch(e:Exception){
+    Log.d(TAG, e.toString())
   }catch(e: Exception){
     Log.d(TAG, e.toString())
   }
@@ -77,13 +83,15 @@ suspend fun update(context: Context)= withContext(Dispatchers.IO){
 suspend fun promptupdate(context: Context, current: Long, latest: Long): Boolean =
   withContext(Dispatchers.Main) {
     suspendCancellableCoroutine { cont ->
-      AlertDialog.Builder(context)
+      val prompt=AlertDialog.Builder(context)
         .setTitle("Update available")
         .setMessage("Current: $current\nLatest: $latest\n\nUpdate now?")
         .setPositiveButton("Update") { _, _ -> if (cont.isActive) cont.resume(true)}
         .setNegativeButton("Later") { _, _ -> if (cont.isActive) cont.resume(false) }
         .setOnCancelListener {if (cont.isActive) cont.resume(false) }
-        .show()
+        .create()
+      cont.invokeOnCancellation { prompt.dismiss() }
+      prompt.show()
     }
   }
 fun checkcurrentversion(context: Context):Long{
@@ -97,7 +105,7 @@ fun fecthlatestjson(): JSONObject?{
   conn.instanceFollowRedirects = true
   conn.setRequestProperty("User-Agent", "obachan-updater")
   conn.connectTimeout=3000
-  conn.readTimeout=1500
+  conn.readTimeout=5000
   try{
     if(conn.responseCode !in 200..299) return null
     return JSONObject(conn.inputStream.bufferedReader().use {it.readText()})
@@ -111,12 +119,16 @@ fun downloadapk(url: String, dest:java.io.File):Boolean?{
   val conn=URL(url).openConnection() as HttpURLConnection
   conn.instanceFollowRedirects = true
   conn.setRequestProperty("User-Agent", "obachan-updater")
-  conn.connectTimeout=3000
-  conn.readTimeout=1500
+  conn.connectTimeout=8000
+  conn.readTimeout=15000
   try{
-    if(conn.responseCode !in 200..299) return null
+    if(conn.responseCode !in 200..299) return false
     conn.inputStream.use {input-> dest.outputStream().use{out-> input.copyTo(out)}}
     return true
+  }catch(e:Exception){
+    dest.delete()
+    Log.d(TAG,e.toString())
+    return false
   }finally {conn.disconnect()}
 }
 
@@ -138,7 +150,7 @@ fun installapk(context: Context, apk: File) {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
   Text(
-    text = "asu $name!",
+    text = "aaaaaaaaaaaa $name!",
     modifier = modifier
   )
 }
