@@ -65,14 +65,12 @@ suspend fun update(context: Context)= withContext(Dispatchers.IO){
     if (currentversion >= latestversion) return@withContext
     //promptupdate
     if (!promptupdate(context,currentversion,latestversion)) return@withContext
-
     val dest = File(context.cacheDir, "obachan.apk")
-    Log.d(TAG, "dest")
     val ok = downloadapk(apkurl, dest)
     Log.d(TAG, "downloaded")
     if (ok==false) return@withContext
     withContext(Dispatchers.Main){installapk(context,dest)}
-    Log.d(TAG, "installed")
+    Log.d(TAG, "install intent")
   }catch(e:Exception){
     Log.d(TAG, e.toString())
   }catch(e: Exception){
@@ -150,7 +148,7 @@ fun installapk(context: Context, apk: File) {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
   Text(
-    text = "aaaaaaaaaaaa $name!",
+    text = "alamak $name!",
     modifier = modifier
   )
 }
