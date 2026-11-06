@@ -137,18 +137,20 @@ fun installapk(context: Context, apk: File) {
     context.startActivity(settings)
     return
   }
+  Log.d(TAG, "intentstart")
   val uri = FileProvider.getUriForFile(context,"${context.packageName}.fileprovider",apk)
   val intent = Intent(Intent.ACTION_VIEW).apply {
     setDataAndType(uri, "application/vnd.android.package-archive")
     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
   }
+  Log.d(TAG, "installstart")
   context.startActivity(intent)
 }
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
   Text(
-    text = "alamak $name!",
+    text = "aaaaa $name!",
     modifier = modifier
   )
 }
