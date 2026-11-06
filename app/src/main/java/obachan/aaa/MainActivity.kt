@@ -104,6 +104,7 @@ fun fecthlatestjson(): JSONObject?{
   conn.setRequestProperty("User-Agent", "obachan-updater")
   conn.connectTimeout=3000
   conn.readTimeout=5000
+  conn.useCaches = false
   try{
     if(conn.responseCode !in 200..299) return null
     return JSONObject(conn.inputStream.bufferedReader().use {it.readText()})
@@ -119,7 +120,9 @@ fun downloadapk(url: String, dest:java.io.File):Boolean?{
   conn.setRequestProperty("User-Agent", "obachan-updater")
   conn.connectTimeout=8000
   conn.readTimeout=15000
+  conn.useCaches = false
   try{
+    Log.d(TAG, conn.responseCode.toString())
     if(conn.responseCode !in 200..299) return false
     conn.inputStream.use {input-> dest.outputStream().use{out-> input.copyTo(out)}}
     return true
@@ -131,11 +134,11 @@ fun downloadapk(url: String, dest:java.io.File):Boolean?{
 }
 
 fun installapk(context: Context, apk: File) {
+  Log.d(TAG, "permission")
   if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O &&!context.packageManager.canRequestPackageInstalls()){
     val settings= Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).setData("package:${context.packageName}".toUri())
     settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     context.startActivity(settings)
-    return
   }
   Log.d(TAG, "intentstart")
   val uri = FileProvider.getUriForFile(context,"${context.packageName}.fileprovider",apk)
@@ -150,7 +153,7 @@ fun installapk(context: Context, apk: File) {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
   Text(
-    text = "aaaaa $name!",
+    text = "ha;ah asu $name!",
     modifier = modifier
   )
 }
